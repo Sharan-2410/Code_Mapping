@@ -1,0 +1,174 @@
+<!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Location Mapping with Unique Code</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        background: #1db954;
+        color: white;
+        padding: 15px;
+        text-align: center;
+    }
+    #map {
+        height: 70vh;
+        width: 100%;
+    }
+    .controls {
+        padding: 15px;
+    }
+    .search-box {
+        position: relative;
+        width: 100%;
+    }
+    .search-box input {
+        width: 100%;
+        padding: 8px 40px 8px 8px;
+    }
+    .search-icon {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 18px;
+    }
+    input, button {
+        padding: 8px;
+        margin: 5px 0;
+        width: 100%;
+    }
+    .code-box {
+        margin-top: 10px;
+        font-weight: bold;
+    }
+</style>
+
+</head>
+<body><header>
+    <h2>Location Mapping using Unique Code</h2>
+    <p>Mini Project (Latitude & Longitude Encoding)</p>
+</header><div id="map"></div><div class="controls">
+    <label>Search City:</label>
+    <div class="search-box">
+        <input type="text" id="city" placeholder="Enter city name">
+        <span class="search-icon" onclick="searchCity()">🔍</span>
+    </div><label>Latitude:</label>
+<input type="number" id="lat" step="any" placeholder="Enter latitude">
+
+<label>Longitude:</label>
+<input type="number" id="lon" step="any" placeholder="Enter longitude">
+
+<button onclick="generateCode()">Generate Unique Code</button>
+<button onclick="decodeCode()">Decode Code</button>
+
+<input type="text" id="codeInput" placeholder="Enter unique code">
+
+<div class="code-box" id="output"></div>
+
+</div><!-- Leaflet JS --><script src="https://unpkg.com/leaflet/dist/leaflet.js"></script><script>
+    // Initialize map
+    const map = L.map('map', { scrollWheelZoom: true }).setView([20.5937, 78.9629], 5);
+    let myIcon = document.createElement('div');
+    myIcon.innerHTML = '<i class="fa-solid fa-house-chimney"></i>';
+    document.body.appendChild(myIcon);
+
+    let myImg = document.createElement('p');
+    myImg.innerHTML = '🏇🏇🏇🏇🏇🏇🏇🏇🏃‍♂️‍➡️🏃‍♂️‍➡️🏃‍♂️‍➡️🏃‍♂️‍➡️🏃‍♂️‍➡️🏃‍♂️‍➡️';
+    document.body.appendChild(myImg);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker;
+
+    // Search city using Nominatim API
+    function searchCity() {
+        const city = document.getElementById('city').value;
+        if (!city) {
+            alert('Please enter a city name');
+            return;
+        }
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data || data.length === 0) {
+                    alert('City not found');
+                    return;
+                }
+
+                const lat = parseFloat(data[0].lat);
+                const lon = parseFloat(data[0].lon);
+
+                document.getElementById('lat').value = lat.toFixed(6);
+                document.getElementById('lon').value = lon.toFixed(6);
+
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lon]).addTo(map);
+                map.setView([lat, lon], 12);
+            })
+            .catch(() => alert('Error searching city'));
+    }
+
+    // Encode latitude & longitude to unique code
+    function encode(lat, lon) {
+        return btoa(lat.toFixed(5) + ',' + lon.toFixed(5));
+    }
+
+    function decode(code) {
+        const decoded = atob(code).split(',');
+        return { lat: parseFloat(decoded[0]), lon: parseFloat(decoded[1]) };
+    }
+
+    function generateCode() {
+        const lat = parseFloat(document.getElementById('lat').value);
+        const lon = parseFloat(document.getElementById('lon').value);
+
+        if (isNaN(lat) || isNaN(lon)) {
+            alert('Please enter valid latitude and longitude');
+            return;
+        }
+
+        const code = encode(lat, lon);
+        document.getElementById('output').innerText = 'Unique Code: ' + code;
+
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lon]).addTo(map);
+        map.setView([lat, lon], 12);
+    }
+
+    function decodeCode() {
+        const code = document.getElementById('codeInput').value;
+        if (!code) {
+            alert('Enter a code to decode');
+            return;
+        }
+
+        try {
+            const location = decode(code);
+            document.getElementById('output').innerText = `Latitude: ${location.lat}, Longitude: ${location.lon}`;
+
+            if (marker) map.removeLayer(marker);
+            marker = L.marker([location.lat, location.lon]).addTo(map);
+            map.setView([location.lat, location.lon], 12);
+        } catch {
+            alert('Invalid Code');
+        }
+    }
+
+    // Click on map to auto-fill coordinates
+    map.on('click', e => {
+        document.getElementById('lat').value = e.latlng.lat.toFixed(6);
+        document.getElementById('lon').value = e.latlng.lng.toFixed(6);
+    });
+</script></body>
+</html>
